@@ -39,7 +39,7 @@ namespace SecureTransportCallouts
             ShowCalloutAreaBlipBeforeAccepting(SpawnPoint, 20f);
 
             Game.LogTrivial("Minimum distance check");
-            AddMinimumDistanceCheck(20f, SpawnPoint);
+            AddMinimumDistanceCheck(2000000f, SpawnPoint);
             
             Game.LogTrivial("Set Callout");
             CalloutMessage = "Need escort for transport";
@@ -106,7 +106,7 @@ namespace SecureTransportCallouts
 
             if(Game.LocalPlayer.Character.IsDead || (SecurityDriver.IsDead && SecurityPassenger.IsDead))
             {
-                this.End();
+                MissionFailed();
             }
                  
             if (Game.LocalPlayer.Character.Position.DistanceTo(SecurityVan.Position) <= 50f && playerIsOnArea == false)
@@ -117,19 +117,12 @@ namespace SecureTransportCallouts
 
             if(playerIsOnArea && !escortOnGoing)
             {
-                //Drive
-                Game.LogTrivial("Drive to the location");
-                SecurityDriver.Tasks.DriveToPosition(BankPosition, 20f, VehicleDrivingFlags.Normal).WaitForCompletion(5000);
-                escortOnGoing = true;
+                StartMission();
             }
 
             if(escortOnGoing && SecurityVan.Position.DistanceTo(BankPosition) <= 50f)
             {
-                Game.LogTrivial("At the bank");
-
-                Game.DisplaySubtitle("Thanks for your backup. See you later!");
-
-                this.End();
+                EndMissionAtBank();
             }
 
             if(!EneniesSpawned && escortOnGoing)
@@ -139,35 +132,9 @@ namespace SecureTransportCallouts
                 int card = rnd.Next(1000000000);
                 */
 
-                EnemiesVehicles = new Vehicle("BALLER2", World.GetNextPositionOnStreet(Game.LocalPlayer.Character.Position.Around(200f)));
-                EnemiesVehicles.AttachBlip().Color = Color.Red;
-
-                Enemy1Driver = EnemiesVehicles.CreateRandomDriver();
-                Enemy1Blip = new Blip(Enemy1Driver);
-                Enemy1Blip.Color = Color.Red;
-                Enemy1Driver.Inventory.GiveNewWeapon("WEAPON_PISTOL", -1, true);
-
-                Enemy2Driver = new Ped("a_m_m_eastsa_01", new Vector3(EnemiesVehicles.Position.X+10, EnemiesVehicles.Position.Y -10, EnemiesVehicles.Position.Z + 10), EnemiesVehicles.Heading);
-                Enemy2Blip = new Blip(Enemy2Driver);
-                Enemy2Blip.Color = Color.Red;
-                Enemy2Driver.Tasks.EnterVehicle(EnemiesVehicles, 100, 0).WaitForCompletion();
-                Enemy2Driver.Inventory.GiveNewWeapon("WEAPON_PISTOL", -1, true);
-
-                Enemy2Driver.Tasks.FightAgainst(SecurityPassenger);
-                Enemy1Driver.Tasks.FightAgainst(SecurityDriver);
-                
-                EneniesSpawned = true;
+                CreateEnemies();
             }
             
-
-
-            //Suspect = SuspectVehicle.CreateRandomDriver();
-
-            //Suspect.IsPersistent = true;
-            //Suspect.BlockPermanentEvents = true;
-            //SuspectBlip = Suspect.AttachBlip();
-            //SuspectBlip.IsFriendly = false;
-            //Suspect.Tasks.CruiseWithVehicle(20f, VehicleDrivingFlags.Normal);
         }
 
         public override void End()
@@ -201,5 +168,48 @@ namespace SecureTransportCallouts
 
         }
 
+        private void CreateEnemies()
+        {
+            EnemiesVehicles = new Vehicle("BALLER2", World.GetNextPositionOnStreet(Game.LocalPlayer.Character.Position.Around(200f)));
+            EnemiesVehicles.AttachBlip().Color = Color.Red;
+
+            Enemy1Driver = EnemiesVehicles.CreateRandomDriver();
+            Enemy1Blip = new Blip(Enemy1Driver);
+            Enemy1Blip.Color = Color.Red;
+            Enemy1Driver.Inventory.GiveNewWeapon("WEAPON_PISTOL", -1, true);
+
+            Enemy2Driver = new Ped("a_m_m_eastsa_01", new Vector3(EnemiesVehicles.Position.X + 10, EnemiesVehicles.Position.Y - 10, EnemiesVehicles.Position.Z + 10), EnemiesVehicles.Heading);
+            Enemy2Blip = new Blip(Enemy2Driver);
+            Enemy2Blip.Color = Color.Red;
+            Enemy2Driver.Tasks.EnterVehicle(EnemiesVehicles, 100, 0).WaitForCompletion();
+            Enemy2Driver.Inventory.GiveNewWeapon("WEAPON_PISTOL", -1, true);
+
+            Enemy2Driver.Tasks.FightAgainst(SecurityPassenger);
+            Enemy1Driver.Tasks.FightAgainst(SecurityDriver);
+
+            EneniesSpawned = true;
+        }
+
+        private void EndMissionAtBank()
+        {
+            Game.LogTrivial("At the bank");
+
+            Game.DisplaySubtitle("Thanks for your backup. See you later!");
+
+            this.End();
+        }
+
+        private void StartMission()
+        {
+            //Drive
+            Game.LogTrivial("Drive to the location");
+            SecurityDriver.Tasks.DriveToPosition(BankPosition, 20f, VehicleDrivingFlags.Normal).WaitForCompletion(5000);
+            escortOnGoing = true;
+        }
+
+        private void MissionFailed()
+        {
+            this.End();
+        }
     }
 }
